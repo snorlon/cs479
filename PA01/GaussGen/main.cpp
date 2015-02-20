@@ -17,7 +17,19 @@ int main(int argc, char** argv)
 
     srand(seed);
 
-    for(int i=0; i< 20; i++)
-        cout<<ranf()<<endl;
+    float mean[2] = {1.0f,1.0f};
+    float stdDev[2][2] = {{1.0f,0.0f},{0.0f,4.0f}};
 
+    for(int i=0; i< 10000; i++)
+    {
+        float point[2] = {0.0f,0.0f};
+
+
+
+        box_muller2d(point, mean, stdDev);
+
+        cout<<"("<<point[0]<<","<<point[1]<<")"<<endl;
+    }
+
+    waitKey(0);
 }
