@@ -11,8 +11,11 @@
 #include <math.h>
 
 
-extern float ranf();         /* ranf() is uniform in 0..1 */
-
+float ranf()
+{
+    float f = (float)(rand() % 100000)/100000.0f;
+    return f;
+}
 
 float box_muller(float m, float s)	/* normal random variate generator */
 {				        /* mean m, standard deviation s */
