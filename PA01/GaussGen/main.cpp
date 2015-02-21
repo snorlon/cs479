@@ -8,6 +8,8 @@ using namespace cv;
 int main(int argc, char** argv)
 {
     int seed = time(NULL);
+    const int numPoints = 10000;
+    float points[numPoints][2];
 
     if(argc > 1)
     {
@@ -18,17 +20,18 @@ int main(int argc, char** argv)
     srand(seed);
 
     float mean[2] = {1.0f,1.0f};
-    float stdDev[2][2] = {{1.0f,0.0f},{0.0f,4.0f}};
+    float stdDev[2][2] = {{1.0f,0.0f},{0.0f,1.0f}};
 
     for(int i=0; i< 10000; i++)
     {
-        float point[2] = {0.0f,0.0f};
+        points[i][0] = 0.0f;
+        points[i][1] = 0.0f;
 
 
 
-        box_muller2d(point, mean, stdDev);
+        box_muller2d(points[i], mean, stdDev);
 
-        cout<<"("<<point[0]<<","<<point[1]<<")"<<endl;
+        cout<<"("<<points[i][0]<<","<<points[i][1]<<")"<<endl;
     }
 
     waitKey(0);

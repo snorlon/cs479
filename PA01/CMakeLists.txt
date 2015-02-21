@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8)
-project( GaussGen )
+project( Bayesian )
 find_package( OpenCV REQUIRED )
-add_executable( GaussGen main.cpp )
-target_link_libraries( GaussGen ${OpenCV_LIBS} )
+add_executable( Bayesian main.cpp )
+target_link_libraries( Bayesian ${OpenCV_LIBS} )

@@ -3,7 +3,6 @@ Requirements:
     Linux machine
     OpenCV
     CMake
-    Boost
 
 How to run:
 
