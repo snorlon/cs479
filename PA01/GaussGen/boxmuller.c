@@ -11,16 +11,16 @@
 #include <math.h>
 
 
-float ranf()
+double ranf()
 {
-    float f = (float)(rand() % 100000)/100000.0f;
+    double f = (double)(rand() % 100000)/100000.0f;
     return f;
 }
 
-float box_muller(float m, float s)	/* normal random variate generator */
+double box_muller(double m, double s)	/* normal random variate generator */
 {				        /* mean m, standard deviation s */
-	float x1, x2, w, y1;
-	static float y2;
+	double x1, x2, w, y1;
+	static double y2;
 	static int use_last = 0;
 
 	if (use_last)		        /* use value from previous call */
@@ -46,14 +46,14 @@ float box_muller(float m, float s)	/* normal random variate generator */
 }
 
 
-void box_muller2d(float point[2], float m[2], float s[2][2])	/* normal random variate generator */
+void box_muller2d(double point[2], double m[2], double s[2][2])	/* normal random variate generator */
 {				        /* mean m, standard deviation s */
-    static float y2[2];
+    static double y2[2];
     static int use_last[2] = {0,0};
 	
     for(int i=0; i<2; i++)
     {
-        float x1, x2, w, y1;
+        double x1, x2, w, y1;
 
 	    if (use_last[i])		        /* use value from previous call */
 	    {

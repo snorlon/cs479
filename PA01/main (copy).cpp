@@ -1,9 +1,6 @@
 #include <stdio.h>
 #include <opencv2/opencv.hpp>
 #include "GaussGen/boxmuller.c"
-#include <math.h>
-
-#define pi 3.14159265359
 
 using namespace std;
 using namespace cv;
@@ -29,26 +26,13 @@ void drawPixel(Mat &image, const int colorCode, int x, int y, int amount, double
         image.at<Vec3b>(Point(100+x,y))[colorCode] = 255;
 }
 
-double calcProbability(double point[2], double mean[2], double StDev[2])
-{
-    double nx = (point[0] - mean[0]) / StDev[0];//n
-    double ny = (point[1] - mean[1]) / StDev[1];//n
-
-    double PrX = (1/(2*pi)) * exp(-nx*nx / 2); //P(X | Class) = P(N = n)
-    double PrY = (1/(2*pi)) * exp(-ny*ny / 2); //P(Y | Class)
-
-    double PrXYgC = PrX * PrY;//P(X,Y | Class)
-
-    return PrXYgC;
-}
-
 int main(int argc, char** argv)
 {
     int seed = time(NULL);
     const int numPoints = 10000;
     double pointSet[numPoints*2][3];//{x,y,class}
-    double probabilityA = 0.5;
-    double probabilityB = 0.5;
+    int probabilityA = 0.5f;
+    int probabilityB = 0.5f;
 
     double meanA[2] = {0.0f,0.0f};
     double meanB[2] = {0.0f,0.0f};
@@ -84,15 +68,13 @@ int main(int argc, char** argv)
 
     double mean[2] = {1.0f,1.0f};
     double stdDev[2][2] = {{sqrt(1.0f),0.0f},{0.0f,sqrt(1.0f)}};
-    double stdDev2[2] = {sqrt(1.0f),sqrt(1.0f)};
-    double meanb[2] = {4.0f,4.0f};
-    double stdDevb[2][2] = {{sqrt(1.0f),0.0f},{0.0f,sqrt(1.0f)}};
-    double stdDevb2[2] = {sqrt(1.0f),sqrt(1.0f)};
 
     int xOffset = -100;
     int yOffset = 100;
 
     int spread = 40;
+
+    double total[2] = {0.0f,0.0f};
 
     for(int i=0; i< 10000; i++)
     {
@@ -101,6 +83,9 @@ int main(int argc, char** argv)
         pointSet[i][2] = 0.0f;//class
 
         box_muller2d(pointSet[i], mean, stdDev);
+
+        total[0] += pointSet[i][0];
+        total[1] += pointSet[i][1];
 
         //plot the points
 
@@ -112,6 +97,40 @@ int main(int argc, char** argv)
         //cout<<"("<<pointSet[i][0]<<","<<pointSet[i][1]<<")"<<endl;
     }
 
+    //calculate the mean based on the total of all point values
+    meanA[0] = total[0] / 10000;
+    meanA[1] = total[1] / 10000;
+
+    //reset totals
+    total[0] = 0.0f;
+    total[1] = 0.0f;
+
+    //now math out standard deviation
+    for(int i=0; i< 10000; i++)
+    {
+        //first calculate variation
+        int difference[2] = {pointSet[i][0],pointSet[i][1]};
+
+        difference[0] -= meanA[0];
+        difference[1] -= meanA[1];
+
+        total[0] += (difference[0]*difference[0]);
+        total[1] += (difference[1]*difference[1]);
+    }
+
+    StDevA[0] = sqrt(total[0] / 10000);
+    StDevA[1] = sqrt(total[1] / 10000);
+
+    cout<<"Calculated mean of class A(0.0) is: ("<<meanA[0]<<","<<meanA[1]<<")"<<endl;
+    cout<<"Calculated standard deviation of class A(0.0) is: ("<<StDevA[0]<<","<<StDevA[1]<<")"<<endl;
+
+    double meanb[2] = {4.0f,4.0f};
+    double stdDevb[2][2] = {{sqrt(1.0f),0.0f},{0.0f,sqrt(1.0f)}};
+
+    //reset totals
+    total[0] = 0.0f;
+    total[1] = 0.0f;
+
     for(int i=0; i< 10000; i++)
     {
         pointSet[i+numPoints][0] = 0.0f;
@@ -119,6 +138,9 @@ int main(int argc, char** argv)
         pointSet[i+numPoints][2] = 1.0f;//class
 
         box_muller2d(pointSet[i+numPoints], meanb, stdDevb);
+
+        total[0] += pointSet[i+numPoints][0];
+        total[1] += pointSet[i+numPoints][1];
 
         //plot the points
 
@@ -130,34 +152,33 @@ int main(int argc, char** argv)
         //cout<<"("<<pointSet[i+numPoints][0]<<","<<pointSet[i+numPoints][1]<<")"<<endl;
     }
 
+    //calculate the mean based on the total of all point values
+    meanB[0] = total[0] / 10000;
+    meanB[1] = total[1] / 10000;
 
-    int correct = 0;
-    int incorrect = 0;
+    //reset totals
+    total[0] = 0.0f;
+    total[1] = 0.0f;
 
-    //run through our data again with the classifier
-    for(int i=0; i<20000; i++)
+    //now math out standard deviation
+    for(int i=0; i< 10000; i++)
     {
-        double pAc = calcProbability(pointSet[i], mean, stdDev2) * probabilityA;
-        double pBc = calcProbability(pointSet[i], meanb, stdDevb2) * probabilityB;
+        //first calculate variation
+        int difference[2] = {pointSet[i+numPoints][0],pointSet[i+numPoints][1]};
 
-        if(pAc > pBc)
-        {
-            if(pointSet[i][2] == 1.0f)
-                incorrect ++;
-            else
-                correct ++;
-        }
-        else
-        {
-            if(pointSet[i][2] == 1.0f)
-                correct ++;
-            else
-                incorrect ++;
-        }
+        difference[0] -= meanB[0];
+        difference[1] -= meanB[1];
+
+        total[0] += (difference[0]*difference[0]);
+        total[1] += (difference[1]*difference[1]);
     }
 
-    cout<<"Correct classified: "<<correct<<endl;
-    cout<<"Incorrect classified: "<<incorrect<<endl;
+    StDevB[0] = sqrt(total[0] / 10000);
+    StDevB[1] = sqrt(total[1] / 10000);
+
+
+    cout<<"Calculated mean of class B(1.0) is: ("<<meanB[0]<<","<<meanB[1]<<")"<<endl;
+    cout<<"Calculated standard deviation of class B(1.0) is: ("<<StDevB[0]<<","<<StDevB[1]<<")"<<endl;
 
     namedWindow("Display Image", CV_WINDOW_AUTOSIZE );
     imshow("Display Image", image);
