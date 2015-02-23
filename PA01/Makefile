@@ -111,6 +111,19 @@ Bayesian/fast:
 	$(MAKE) -f CMakeFiles/Bayesian.dir/build.make CMakeFiles/Bayesian.dir/build
 .PHONY : Bayesian/fast
 
+#=============================================================================
+# Target rules for targets named src
+
+# Build rule for target.
+src: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 src
+.PHONY : src
+
+# fast build rule for target.
+src/fast:
+	$(MAKE) -f src/CMakeFiles/src.dir/build.make src/CMakeFiles/src.dir/build
+.PHONY : src/fast
+
 main.o: main.cpp.o
 .PHONY : main.o
 
@@ -144,6 +157,7 @@ help:
 	@echo "... Bayesian"
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
+	@echo "... src"
 	@echo "... main.o"
 	@echo "... main.i"
 	@echo "... main.s"

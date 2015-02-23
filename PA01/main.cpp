@@ -2,6 +2,8 @@
 #include <opencv2/opencv.hpp>
 #include "GaussGen/boxmuller.c"
 #include <math.h>
+#include "headers/MatrixMath.h"
+#include "headers/Bound.h"
 
 #define pi 3.14159265359
 
@@ -23,7 +25,7 @@ void drawPixel(Mat &image, const int colorCode, int x, int y, int amount, double
     if(y < 0)
         y = 0;
 
-    image.at<Vec3b>(Point(100+x,y))[colorCode] += (int) (1 * scale);
+    image.at<Vec3b>(Point(100+x,y))[colorCode] = (int) (1 * scale);
 
     if(image.at<Vec3b>(Point(100+x,y))[colorCode] > 255)
         image.at<Vec3b>(Point(100+x,y))[colorCode] = 255;
@@ -83,16 +85,21 @@ int main(int argc, char** argv)
     srand(seed);
 
     double mean[2] = {1.0f,1.0f};
+    double meanv[2][1] = {{1.0},{1.0}};//vertical 2d matrix
+    double covarianceA[2][2] = {{1.0f,0.0f},{0.0f,1.0f}};
     double stdDev[2][2] = {{sqrt(1.0f),0.0f},{0.0f,sqrt(1.0f)}};
     double stdDev2[2] = {sqrt(1.0f),sqrt(1.0f)};
     double meanb[2] = {4.0f,4.0f};
+    double meanbv[2][1] = {{4.0},{4.0}};//vertical 2d matrix
+    double covarianceB[2][2] = {{1.0f,0.0f},{0.0f,1.0f}};
     double stdDevb[2][2] = {{sqrt(1.0f),0.0f},{0.0f,sqrt(1.0f)}};
     double stdDevb2[2] = {sqrt(1.0f),sqrt(1.0f)};
+	double cBound[100][2];
 
-    int xOffset = -100;
-    int yOffset = 100;
+    int xOffset = 100;
+    int yOffset = -100;
 
-    int spread = 40;
+    double spread = 10.0;
 
     for(int i=0; i< 10000; i++)
     {
@@ -104,10 +111,10 @@ int main(int argc, char** argv)
 
         //plot the points
 
-        int x = 500 - (pointSet[i][0] * spread) + xOffset;
-        int y = pointSet[i][1] * spread + yOffset;
+        int x = (pointSet[i][0] * spread) + xOffset;
+        int y = 500 - (pointSet[i][1] * spread) + yOffset;
 
-        drawPixel(image, Magenta, x, y, 1, 1.0f);
+        drawPixel(image, Magenta, y, x, 255, 1.0f);
 
         //cout<<"("<<pointSet[i][0]<<","<<pointSet[i][1]<<")"<<endl;
     }
@@ -122,10 +129,10 @@ int main(int argc, char** argv)
 
         //plot the points
 
-        int x = 500 - (pointSet[i+numPoints][0] * spread) + xOffset;
-        int y = pointSet[i+numPoints][1] * spread + yOffset;
+        int x = (pointSet[i+numPoints][0] * spread) + xOffset;
+        int y = 500 - (pointSet[i+numPoints][1] * spread) + yOffset;
 
-        drawPixel(image, Cyan, x, y, 1, 1.0f);
+        drawPixel(image, Cyan, y, x, 255, 1.0f);
 
         //cout<<"("<<pointSet[i+numPoints][0]<<","<<pointSet[i+numPoints][1]<<")"<<endl;
     }
@@ -158,6 +165,42 @@ int main(int argc, char** argv)
 
     cout<<"Correct classified: "<<correct<<endl;
     cout<<"Incorrect classified: "<<incorrect<<endl;
+
+
+
+
+	// Access boundary points through cBound
+	makeChernoff(cBound,meanv,meanbv,covarianceA,covarianceB);
+    double chernoffScale = 300.0;
+
+    //plot it
+    for(int i=0; i<10000; i++)
+    {
+        int x = (cBound[i][0] * chernoffScale) + 50;
+        int y = 500 - (cBound[i][1] * chernoffScale) + 0;
+
+        drawPixel(image, Yellow, x, y, 255, 1.0f);
+        drawPixel(image, Magenta, x, y, 255, 1.0f);
+    }
+
+    double minimumBeta = 0.0;
+    double minimumY = 0.0;
+
+    findMinB(cBound, minimumBeta, minimumY);
+
+	cout << "The Beta that minimizes error for the Chernoff bound is: " << minimumBeta <<endl
+		 << "Where e^-k(b) is : " << minimumY   << endl
+		  <<"P(error) is equal to: "<< getProb(probabilityA,probabilityB,minimumY)<< endl<< endl;
+
+	// calculating battacharyya bound
+	double kb = getBattacharayyaBound(meanv,meanbv,covarianceA,covarianceB);
+
+	cout << "The Battacharyya bound gives us k(0.5) = " << kb << endl
+	   	<< "where e^-k(b) is: " << exp(-kb) << endl
+		<<"P(error) is equal to: " << getProb(probabilityA,probabilityB,kb) << endl;
+
+
+
 
     namedWindow("Display Image", CV_WINDOW_AUTOSIZE );
     imshow("Display Image", image);
