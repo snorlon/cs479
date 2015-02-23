@@ -4,10 +4,10 @@
 
 using namespace std;
 
-// Generate a set of 1000 points for the chernoff bound to be plotted on beta=0 to 1.0 where
+// Generate a set of 1000 points for the error bound to be plotted on beta=0 to 1.0 where
 // "bound" is the set of points generated, m1 and m2 are the means, and c1 and c2 are
 // the covariance matrixes
-void makeChernoff(double chernoffBoundPoints[][2], double meanA[][1], double meanB[][1], double covarianceA[][2], double covarianceB[][2])
+void makeBound(double chernoffBoundPoints[][2], double meanA[][1], double meanB[][1], double covarianceA[][2], double covarianceB[][2])
 {
 	int i,j,k;
 	double trans[1][2];
@@ -129,4 +129,69 @@ double getBattacharayyaBound(double meanA[][1], double meanB[][1], double covari
 double getProb(double priorProbA, double priorProbB, double kB)
 {
 	return (sqrt(priorProbA*priorProbB))*exp(-kB);
+}
+
+// Generates points, in "outputGraph", that can be plotted to show both the battacharyya and Chernoff bounds 
+//takes in the plot points "chernoffboundPoints", the minimuzing beta for the chernoff with the corresponding y value,
+// and the e^(-k(b)) for the battacharyya
+// To be used for an output file that will be plotted in Excel
+void makePlot(double outputGraph[][6], double chernoffBoundPoints[][2], double minBeta, double minY, double eKB)
+{
+	int i;
+	double currentChernoffX = 0.0f;
+	double currentChernoffY = minY;
+	double currentBattaX = 0.0f;
+	double currentBattaY = eKB;
+
+	// setting plot points for curve
+	for(i=0; i < 10000; i++){
+		outputGraph[i][0] = chernoffBoundPoints[i][0];
+		outputGraph[i][1] = chernoffBoundPoints[i][1];
+	}
+
+	i=0;
+	//setting plot points for chernoff horrizontally
+	while(currentChernoffX < minBeta){
+		outputGraph[i][2] = currentChernoffX;
+		outputGraph[i][3] = currentChernoffY;
+		currentChernoffX += 0.001;
+		i++;
+	}
+	//setting plot points for chernoff vertically 
+	while(currentChernoffY > 0){
+		outputGraph[i][2] = currentChernoffX;
+		outputGraph[i][3] = currentChernoffY;
+		currentChernoffY -= 0.001;
+		i++;
+	}
+	// fill rest with zeros to avoid junk
+	while (i <10000){
+		outputGraph[i][2] = 0;
+		outputGraph[i][3] = 0;
+		i++;
+	}
+
+	i=0;
+	//setting plot points for bhattacharyya horrizontally
+	while(currentBattaX < 0.5){
+		outputGraph[i][4] = currentBattaX;
+		outputGraph[i][5] = currentBattaY;
+		currentBattaX += 0.001;
+		i++;
+	}
+
+	//setting plot points for bhattacharyya vertically 
+	while(currentBattaY > 0){
+		outputGraph[i][4] = currentBattaX;
+		outputGraph[i][5] = currentBattaY;
+		currentBattaY -= 0.001;
+		i++;
+	}
+	// fill rest with zeros to avoid junk
+	while (i <10000){
+		outputGraph[i][4] = 0;
+		outputGraph[i][5] = 0;
+		i++;
+	}
+
 }

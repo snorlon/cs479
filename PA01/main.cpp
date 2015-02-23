@@ -56,6 +56,7 @@ int main(int argc, char** argv)
     double meanB[2][1] = {{4.0},{4.0}};
     double covarianceB[2][2] = {{1.0f,0.0f},{0.0f,1.0f}};
 	double chernoffBoundPoints[10000][2];
+    double outputGraph[10000][6];
 
     double stdDevA[2][2] = {{0.0,0.0},{0.0,0.0}};
     double stdDevB[2][2] = {{0.0,0.0},{0.0,0.0}};
@@ -221,7 +222,7 @@ int main(int argc, char** argv)
 
 
 	// Access boundary points through chernoffBoundPoints, generate points for use
-	makeChernoff(chernoffBoundPoints,meanA,meanB,covarianceA,covarianceB);
+	makeBound(chernoffBoundPoints,meanA,meanB,covarianceA,covarianceB);
 
     //plot it
     for(int i=0; i<10000; i++)
@@ -237,15 +238,17 @@ int main(int argc, char** argv)
 
 	cout << "The Beta that minimizes error for the Chernoff bound is: " << minimumBeta <<endl
 		 << "Where e^-k(b) is : " << minimumY   << endl
-		  <<"P(error) is equal to: "<< getProb(probabilityA,probabilityB,minimumY)<< endl<< endl;
+		  <<"P(error), the Chernoff error bound, is equal to: "<< getProb(probabilityA,probabilityB,minimumY)<< endl<< endl;
 
 	// calculating battacharyya bound
 	kb = getBattacharayyaBound(meanA,meanB,covarianceA,covarianceB);
 
-	cout << "The Battacharyya bound gives us k(0.5) = " << kb << endl
+	cout << "The Bhattacharyya bound gives us k(0.5) = " << kb << endl
 	   	<< "where e^-k(b) is: " << exp(-kb) << endl
-		<<"P(error) is equal to: " << getProb(probabilityA,probabilityB,exp(-kb)) << endl;
+		<<"P(error), the Bhattacharyya error bound, is equal to: " << getProb(probabilityA,probabilityB,exp(-kb)) << endl;
 
+    // generate a graph with all error bounds
+	makePlot(outputGraph, chernoffBoundPoints,minimumBeta, minimumY, exp(-kb));
 
     namedWindow("Display Image", CV_WINDOW_AUTOSIZE );
     imshow("Display Image", image);
