@@ -7,7 +7,7 @@ Requirements:
 How to run:
 
     From scratch:
-        cmake ../
+        cmake CMakeLists.txt
         Continue to next part
 
     With current makefile:
