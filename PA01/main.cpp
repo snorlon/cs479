@@ -4,15 +4,16 @@
 #include <math.h>
 #include "headers/MatrixMath.h"
 #include "headers/Bound.h"
+#include <fstream>
 
 #define pi 3.14159265359
 
 using namespace std;
 using namespace cv;
 
-const static int Yellow = 0;
-const static int Magenta = 1;
-const static int Cyan = 2;
+const static int Blue = 0;
+const static int Green = 1;
+const static int Red = 2;
 
 void drawPixel(Mat &image, const int colorCode, int x, int y, double amount)
 {
@@ -61,7 +62,7 @@ int main(int argc, char** argv)
     double stdDevA[2][2] = {{0.0,0.0},{0.0,0.0}};
     double stdDevB[2][2] = {{0.0,0.0},{0.0,0.0}};
 
-    string filepathRoot = "output";
+    string filepathRoot = "output.txt";
 
     int xOffset = 100;//for rendering points
     int yOffset = -100;
@@ -170,7 +171,9 @@ int main(int argc, char** argv)
         int x = (pointSet[i][0] * spread) + xOffset;
         int y = 500 - (pointSet[i][1] * spread) + yOffset;
 
-        drawPixel(image, Magenta, y, x, 1.0);
+        drawPixel(image, Blue, y, x, 255);
+        drawPixel(image, Green, y, x, 255);
+        drawPixel(image, Red, y, x, 0);
 
         //cout<<"("<<pointSet[i][0]<<","<<pointSet[i][1]<<")"<<endl;
     }
@@ -189,7 +192,9 @@ int main(int argc, char** argv)
         int x = (pointSet[i+numPoints][0] * spread) + xOffset;
         int y = 500 - (pointSet[i+numPoints][1] * spread) + yOffset;
 
-        drawPixel(image, Cyan, y, x, 1.0);
+        drawPixel(image, Blue, y, x, 255);
+        drawPixel(image, Green, y, x, 0);
+        drawPixel(image, Red, y, x, 255);
 
         //cout<<"("<<pointSet[i+numPoints][0]<<","<<pointSet[i+numPoints][1]<<")"<<endl;
     }
@@ -203,7 +208,16 @@ int main(int argc, char** argv)
         if(pAc > pBc)
         {
             if(pointSet[i][2] == 1.0f)
+            {
                 incorrect ++;
+
+                int x = (pointSet[i][0] * spread) + xOffset;
+                int y = 500 - (pointSet[i][1] * spread) + yOffset;
+
+                drawPixel(image, Blue, y, x, 0.0);
+                drawPixel(image, Green, y, x, 0.0);
+                drawPixel(image, Red, y, x, 255.0);
+            }
             else
                 correct ++;
         }
@@ -212,7 +226,16 @@ int main(int argc, char** argv)
             if(pointSet[i][2] == 1.0f)
                 correct ++;
             else
+            {
                 incorrect ++;
+
+                int x = (pointSet[i][0] * spread) + xOffset;
+                int y = 500 - (pointSet[i][1] * spread) + yOffset;
+
+                drawPixel(image, Blue, y, x, 255.0);
+                drawPixel(image, Green, y, x, 0.0);
+                drawPixel(image, Red, y, x, 0.0);
+            }
         }
     }
 
@@ -230,8 +253,9 @@ int main(int argc, char** argv)
         int x = (chernoffBoundPoints[i][0] * chernoffScale) + 50;
         int y = 500 - (chernoffBoundPoints[i][1] * chernoffScale) + 0;
 
-        drawPixel(image, Yellow, x, y, 0.3);
-        drawPixel(image, Magenta, x, y, 0.3);
+        drawPixel(image, Blue, x, y, 0.0);
+        drawPixel(image, Green, x, y, 0.0);
+        drawPixel(image, Red, x, y, 255.0);
     }
 
     findMinB(chernoffBoundPoints, minimumBeta, minimumY);
@@ -249,6 +273,24 @@ int main(int argc, char** argv)
 
     // generate a graph with all error bounds
 	makePlot(outputGraph, chernoffBoundPoints,minimumBeta, minimumY, exp(-kb));
+
+    ofstream output;
+    output.open(filepathRoot.c_str());
+
+    for(int i=0; i<10000; i++)
+    {
+        for(int j=0; j<6; j++)
+        {
+            output<<outputGraph[i][j];
+
+            if(j!=5)
+                output<<'\t';
+            else
+                output<<endl;
+        }
+    }
+
+    output.close();
 
     namedWindow("Display Image", CV_WINDOW_AUTOSIZE );
     imshow("Display Image", image);

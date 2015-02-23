@@ -7,7 +7,6 @@ Requirements:
 How to run:
 
     From scratch:
-        rm CMakeCache.txt
         cmake ../
         Continue to next part
 
@@ -19,12 +18,11 @@ How to run:
             ./Bayesian 5 1 1 4 4 1 0 0 1 1 0 0 1 0.3 0.7
 
 Issues: 
+    None known
 
 
 
-
-Credits:
-
-
-
-
+Code Credits:
+    Everett F. Carter Jr:   1D box-muller source
+    Chad Brown:             2D box-muller based on 1D, components i-iii, file I/O handling, c++ rendering
+    Sarah Koh:              Matrix math, parts iv and v
