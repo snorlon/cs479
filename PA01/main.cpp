@@ -14,8 +14,9 @@ const static int Yellow = 0;
 const static int Magenta = 1;
 const static int Cyan = 2;
 
-void drawPixel(Mat &image, const int colorCode, int x, int y, int amount, double scale)
+void drawPixel(Mat &image, const int colorCode, int x, int y, double amount)
 {
+    //stay within the bounds for rendering, do not render off screen
     if(x >= 500)
         x = 499;
     if(y >= 500)
@@ -25,16 +26,14 @@ void drawPixel(Mat &image, const int colorCode, int x, int y, int amount, double
     if(y < 0)
         y = 0;
 
-    image.at<Vec3b>(Point(100+x,y))[colorCode] = (int) (1 * scale);
-
-    if(image.at<Vec3b>(Point(100+x,y))[colorCode] > 255)
-        image.at<Vec3b>(Point(100+x,y))[colorCode] = 255;
+    //update the color corresponding to the code with an intensity dictated by "amount"
+    image.at<Vec3b>(Point(100+x,y))[colorCode] = amount;
 }
 
-double calcProbability(double point[2], double mean[2], double StDev[2])
+double calcProbability(double point[2], double mean[2][1], double StDev[2][2])
 {
-    double nx = (point[0] - mean[0]) / StDev[0];//n
-    double ny = (point[1] - mean[1]) / StDev[1];//n
+    double nx = (point[0] - mean[0][0]) / StDev[0][0];//n
+    double ny = (point[1] - mean[1][0]) / StDev[1][1];//n
 
     double PrX = (1/(2*pi)) * exp(-nx*nx / 2); //P(X | Class) = P(N = n)
     double PrY = (1/(2*pi)) * exp(-ny*ny / 2); //P(Y | Class)
@@ -46,18 +45,34 @@ double calcProbability(double point[2], double mean[2], double StDev[2])
 
 int main(int argc, char** argv)
 {
+    //program variables
     int seed = time(NULL);
     const int numPoints = 10000;
     double pointSet[numPoints*2][3];//{x,y,class}
     double probabilityA = 0.5;
     double probabilityB = 0.5;
+    double meanA[2][1] = {{1.0},{1.0}};
+    double covarianceA[2][2] = {{1.0,0.0},{0.0,1.0}};
+    double meanB[2][1] = {{4.0},{4.0}};
+    double covarianceB[2][2] = {{1.0f,0.0f},{0.0f,1.0f}};
+	double chernoffBoundPoints[10000][2];
 
-    double meanA[2] = {0.0f,0.0f};
-    double meanB[2] = {0.0f,0.0f};
+    double stdDevA[2][2] = {{0.0,0.0},{0.0,0.0}};
+    double stdDevB[2][2] = {{0.0,0.0},{0.0,0.0}};
 
-    double StDevA[2] = {0.0f,0.0f};
-    double StDevB[2] = {0.0f,0.0f};
+    int xOffset = 100;//for rendering points
+    int yOffset = -100;
 
+    int correct = 0;
+    int incorrect = 0;
+
+    double spread = 10.0;//a multiplication factor for rendering points of the two classes
+
+
+    double minimumBeta = 0.0;
+    double minimumY = 0.0;
+    double chernoffScale = 300.0;//used for rendering the chernoff bound
+    double kb;//k(b)
 
 
     Mat image;
@@ -73,79 +88,107 @@ int main(int argc, char** argv)
         return -1;
     }
 
-
-
-
     if(argc > 1)
     {
         //use the first parameter as a seed for replicating results
         seed = atoi(argv[1]);
     }
 
+    //mean for class A
+    if(argc > 3)
+    {
+        //parameters 2 through 4 are for mean matrices
+        meanA[0][0] = atof(argv[2]);
+        meanA[1][0] = atof(argv[3]);
+    }
+
+    //mean for class B
+    if(argc > 5)
+    {
+        //parameters 2 through 4 are for mean matrices
+        meanB[0][0] = atof(argv[4]);
+        meanB[1][0] = atof(argv[5]);
+    }
+
+    //class A covariance
+    if(argc > 9)
+    {
+        //parameters 6 through 14 are for covariance matrices
+        covarianceA[0][0] = atof(argv[6]);
+        covarianceA[0][1] = atof(argv[7]);
+        covarianceA[1][0] = atof(argv[8]);
+        covarianceA[1][1] = atof(argv[9]);
+    }
+
+    //class B covariance
+    if(argc > 13)
+    {
+        //parameters 6 through 14 are for covariance matrices
+        covarianceB[0][0] = atof(argv[10]);
+        covarianceB[0][1] = atof(argv[11]);
+        covarianceB[1][0] = atof(argv[12]);
+        covarianceB[1][1] = atof(argv[13]);
+    }
+
+    //prior probability for class A & class B
+    if(argc > 15)
+    {
+        probabilityA = atof(argv[14]);
+        probabilityB = atof(argv[15]);
+    }
+
+    //calculate standard deviation
+    stdDevA[0][0] = sqrt(covarianceA[0][0]);//since in this case variance = covariance and sqrt(variance) = standard deviation
+    stdDevA[1][1] = sqrt(covarianceA[1][1]);
+    stdDevB[0][0] = sqrt(covarianceB[0][0]);
+    stdDevB[1][1] = sqrt(covarianceB[1][1]);
+
+    //initialize our RNG seed
     srand(seed);
 
-    double mean[2] = {1.0f,1.0f};
-    double meanv[2][1] = {{1.0},{1.0}};//vertical 2d matrix
-    double covarianceA[2][2] = {{1.0f,0.0f},{0.0f,1.0f}};
-    double stdDev[2][2] = {{sqrt(1.0f),0.0f},{0.0f,sqrt(1.0f)}};
-    double stdDev2[2] = {sqrt(1.0f),sqrt(1.0f)};
-    double meanb[2] = {4.0f,4.0f};
-    double meanbv[2][1] = {{4.0},{4.0}};//vertical 2d matrix
-    double covarianceB[2][2] = {{1.0f,0.0f},{0.0f,1.0f}};
-    double stdDevb[2][2] = {{sqrt(1.0f),0.0f},{0.0f,sqrt(1.0f)}};
-    double stdDevb2[2] = {sqrt(1.0f),sqrt(1.0f)};
-	double cBound[100][2];
-
-    int xOffset = 100;
-    int yOffset = -100;
-
-    double spread = 10.0;
-
+    //generate points for class A
     for(int i=0; i< 10000; i++)
     {
         pointSet[i][0] = 0.0f;
         pointSet[i][1] = 0.0f;
         pointSet[i][2] = 0.0f;//class
 
-        box_muller2d(pointSet[i], mean, stdDev);
+        box_muller2d(pointSet[i], meanA, stdDevA);
 
         //plot the points
 
         int x = (pointSet[i][0] * spread) + xOffset;
         int y = 500 - (pointSet[i][1] * spread) + yOffset;
 
-        drawPixel(image, Magenta, y, x, 255, 1.0f);
+        drawPixel(image, Magenta, y, x, 1.0);
 
         //cout<<"("<<pointSet[i][0]<<","<<pointSet[i][1]<<")"<<endl;
     }
 
+    //generate points for class B
     for(int i=0; i< 10000; i++)
     {
         pointSet[i+numPoints][0] = 0.0f;
         pointSet[i+numPoints][1] = 0.0f;
         pointSet[i+numPoints][2] = 1.0f;//class
 
-        box_muller2d(pointSet[i+numPoints], meanb, stdDevb);
+        box_muller2d(pointSet[i+numPoints], meanB, stdDevB);
 
         //plot the points
 
         int x = (pointSet[i+numPoints][0] * spread) + xOffset;
         int y = 500 - (pointSet[i+numPoints][1] * spread) + yOffset;
 
-        drawPixel(image, Cyan, y, x, 255, 1.0f);
+        drawPixel(image, Cyan, y, x, 1.0);
 
         //cout<<"("<<pointSet[i+numPoints][0]<<","<<pointSet[i+numPoints][1]<<")"<<endl;
     }
 
-
-    int correct = 0;
-    int incorrect = 0;
-
-    //run through our data again with the classifier
+    //run through our data again with the classifier, count if it gets calculated correctly or not
     for(int i=0; i<20000; i++)
     {
-        double pAc = calcProbability(pointSet[i], mean, stdDev2) * probabilityA;
-        double pBc = calcProbability(pointSet[i], meanb, stdDevb2) * probabilityB;
+        double pAc = calcProbability(pointSet[i], meanA, stdDevA) * probabilityA;
+        double pBc = calcProbability(pointSet[i], meanB, stdDevB) * probabilityB;
 
         if(pAc > pBc)
         {
@@ -163,43 +206,36 @@ int main(int argc, char** argv)
         }
     }
 
+
     cout<<"Correct classified: "<<correct<<endl;
     cout<<"Incorrect classified: "<<incorrect<<endl;
 
 
-
-
-	// Access boundary points through cBound
-	makeChernoff(cBound,meanv,meanbv,covarianceA,covarianceB);
-    double chernoffScale = 300.0;
+	// Access boundary points through chernoffBoundPoints, generate points for use
+	makeChernoff(chernoffBoundPoints,meanA,meanB,covarianceA,covarianceB);
 
     //plot it
     for(int i=0; i<10000; i++)
     {
-        int x = (cBound[i][0] * chernoffScale) + 50;
-        int y = 500 - (cBound[i][1] * chernoffScale) + 0;
+        int x = (chernoffBoundPoints[i][0] * chernoffScale) + 50;
+        int y = 500 - (chernoffBoundPoints[i][1] * chernoffScale) + 0;
 
-        drawPixel(image, Yellow, x, y, 255, 1.0f);
-        drawPixel(image, Magenta, x, y, 255, 1.0f);
+        drawPixel(image, Yellow, x, y, 0.75);
+        drawPixel(image, Magenta, x, y, 0.75);
     }
 
-    double minimumBeta = 0.0;
-    double minimumY = 0.0;
-
-    findMinB(cBound, minimumBeta, minimumY);
+    findMinB(chernoffBoundPoints, minimumBeta, minimumY);
 
 	cout << "The Beta that minimizes error for the Chernoff bound is: " << minimumBeta <<endl
 		 << "Where e^-k(b) is : " << minimumY   << endl
 		  <<"P(error) is equal to: "<< getProb(probabilityA,probabilityB,minimumY)<< endl<< endl;
 
 	// calculating battacharyya bound
-	double kb = getBattacharayyaBound(meanv,meanbv,covarianceA,covarianceB);
+	kb = getBattacharayyaBound(meanA,meanB,covarianceA,covarianceB);
 
 	cout << "The Battacharyya bound gives us k(0.5) = " << kb << endl
 	   	<< "where e^-k(b) is: " << exp(-kb) << endl
-		<<"P(error) is equal to: " << getProb(probabilityA,probabilityB,kb) << endl;
-
-
+		<<"P(error) is equal to: " << getProb(probabilityA,probabilityB,exp(-kb)) << endl;
 
 
     namedWindow("Display Image", CV_WINDOW_AUTOSIZE );

@@ -20,6 +20,7 @@ double ranf()
 double box_muller(double m, double s)	/* normal random variate generator */
 {				        /* mean m, standard deviation s */
 	double x1, x2, w, y1;
+
 	static double y2;
 	static int use_last = 0;
 
@@ -46,8 +47,9 @@ double box_muller(double m, double s)	/* normal random variate generator */
 }
 
 
-void box_muller2d(double point[2], double m[2], double s[2][2])	/* normal random variate generator */
-{				        /* mean m, standard deviation s */
+void box_muller2d(double point[2], double mean[2][1], double standardDeviation[2][2])	/* normal random variate generator */
+{
+	/* mean m, standard deviation s */
     static double y2[2];
     static int use_last[2] = {0,0};
 	
@@ -55,26 +57,29 @@ void box_muller2d(double point[2], double m[2], double s[2][2])	/* normal random
     {
         double x1, x2, w, y1;
 
-	    if (use_last[i])		        /* use value from previous call */
+        /* use value from previous call */
+	    if (use_last[i])		        
 	    {
-		    y1 = y2[i];
-		    use_last[i] = 0;
+		    y1 = y2[i];//grab the prior value
+		    use_last[i] = 0;//make sure to reset the flag
 	    }
 	    else
 	    {
-		    do {
+		    do
+            {
 			    x1 = 2.0 * ranf() - 1.0;
 			    x2 = 2.0 * ranf() - 1.0;
 			    w = x1 * x1 + x2 * x2;
-		    } while ( w >= 1.0 );
+		    }
+            while ( w >= 1.0 );
 
 		    w = sqrt( (-2.0 * log( w ) ) / w );
 		    y1 = x1 * w;
-		    y2[i] = x2 * w;
-		    use_last[i] = 1;
+		    y2[i] = x2 * w;//store the value for later use
+		    use_last[i] = 1;//set the flag for the next execution
 	    }
 
-        point[i] = m[i] + y1 * s[i][i];
+        point[i] = mean[i][0] + y1 * standardDeviation[i][i];
     }
 }
 
