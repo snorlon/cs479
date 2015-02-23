@@ -1,4 +1,4 @@
-#include "../headers/MatrixMath.h"
+#include "MatrixMath.h"
 #include <math.h>
 #include <iostream>
 
@@ -125,10 +125,10 @@ double getBattacharayyaBound(double meanA[][1], double meanB[][1], double covari
 }
 
 // Calculates the probability of error for the battacharayya bound 
-//by taking in the priors and the k(b)
-double getProb(double priorProbA, double priorProbB, double kB)
+//by taking in the priors and the e^-k(b)
+double getProb(double priorProbA, double priorProbB, double ekB)
 {
-	return (sqrt(priorProbA*priorProbB))*exp(-kB);
+	return (sqrt((priorProbA*priorProbB)*ekB));
 }
 
 // Generates points, in "outputGraph", that can be plotted to show both the battacharyya and Chernoff bounds 
