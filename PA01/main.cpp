@@ -60,6 +60,8 @@ int main(int argc, char** argv)
     double stdDevA[2][2] = {{0.0,0.0},{0.0,0.0}};
     double stdDevB[2][2] = {{0.0,0.0},{0.0,0.0}};
 
+    string filepathRoot = "output";
+
     int xOffset = 100;//for rendering points
     int yOffset = -100;
 
@@ -135,6 +137,13 @@ int main(int argc, char** argv)
     {
         probabilityA = atof(argv[14]);
         probabilityB = atof(argv[15]);
+    }
+
+    //give the option to take in a file name for saving to
+    if(argc > 16)
+    {
+        string newPath(argv[16]);
+        filepathRoot = newPath;
     }
 
     //calculate standard deviation
@@ -220,8 +229,8 @@ int main(int argc, char** argv)
         int x = (chernoffBoundPoints[i][0] * chernoffScale) + 50;
         int y = 500 - (chernoffBoundPoints[i][1] * chernoffScale) + 0;
 
-        drawPixel(image, Yellow, x, y, 0.75);
-        drawPixel(image, Magenta, x, y, 0.75);
+        drawPixel(image, Yellow, x, y, 0.3);
+        drawPixel(image, Magenta, x, y, 0.3);
     }
 
     findMinB(chernoffBoundPoints, minimumBeta, minimumY);
