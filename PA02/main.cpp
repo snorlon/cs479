@@ -238,6 +238,52 @@ int main(int argc, char** argv)
     cout<<"Mean for set A is calculated as: ("<<meanA[0][0]<<","<<meanA[1][0]<<")."<<endl;
     cout<<"Mean for set B is calculated as: ("<<meanB[0][0]<<","<<meanB[1][0]<<")."<<endl;
 
+    //lets do covariance now
+    double classAtestCovariance[2][2] = {{0,0},{0,0}};
+    double classBtestCovariance[2][2] = {{0,0},{0,0}};
+    for(int i=0; i<numPoints; i++)
+    {
+        double tempX = 0.0;
+        double tempY = 0.0;
+
+        //calculate distance from mean
+        tempX = pointSet[i][0] - meanA[0][0];
+        tempY = pointSet[i][1] - meanA[0][1];
+
+        //square it
+        tempX *= tempX;
+        tempY *= tempY;
+
+        classAtestCovariance[0][0]+=tempX;
+        classAtestCovariance[1][1]+=tempY;
+    }
+    for(int i=numPoints; i<numPoints*2; i++)
+    {
+        double tempX = 0.0;
+        double tempY = 0.0;
+
+        //calculate distance from mean
+        tempX = pointSet[i][0] - meanB[0][0];
+        tempY = pointSet[i][1] - meanB[0][1];
+
+        //square it
+        tempX *= tempX;
+        tempY *= tempY;
+
+        classBtestCovariance[0][0]+=tempX;
+        classBtestCovariance[1][1]+=tempY;
+    }
+
+    stdDevA[0][0] = sqrt(classAtestCovariance[0][0] / numPoints);
+    stdDevA[1][1] = sqrt(classAtestCovariance[1][1] / numPoints);
+    stdDevB[0][0] = sqrt(classBtestCovariance[0][0] / numPoints);
+    stdDevB[1][1] = sqrt(classBtestCovariance[1][1] / numPoints);
+
+    cout<<"Covariance for set A is calculated as: ("<<classAtestCovariance[0][0]/numPoints<<","<<classAtestCovariance[0][1]<<")."<<endl;
+    cout<<"                                       ("<<classAtestCovariance[1][0]<<","<<classAtestCovariance[1][1]/numPoints<<")."<<endl;
+    cout<<"Covariance for set B is calculated as: ("<<classBtestCovariance[0][0]/numPoints<<","<<classBtestCovariance[0][1]<<")."<<endl;
+    cout<<"                                       ("<<classBtestCovariance[1][0]<<","<<classBtestCovariance[1][1]/numPoints<<")."<<endl;
+
     //run through our data again with the classifier, count if it gets calculated correctly or not
     for(int i=0; i<numPoints*2; i++)
     {
