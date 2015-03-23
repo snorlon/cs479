@@ -47,15 +47,8 @@ double calcProbability(double point[2], double mean[2][1], double StDev[2][2])
 int main(int argc, char** argv)
 {
     //program variables
-    int seed = time(NULL);
-    int numPoints = 10000;
-
-
-    //give the option to take in number of points to generate
-    if(argc > 17)
-    {
-        numPoints = atoi(argv[17]);
-    }
+    int seed = 1;
+    int numPoints = 1000;
 
     double pointSet[numPoints*2][3];//{x,y,class}
     double probabilityA = 0.5;
@@ -70,15 +63,13 @@ int main(int argc, char** argv)
     double stdDevA[2][2] = {{0.0,0.0},{0.0,0.0}};
     double stdDevB[2][2] = {{0.0,0.0},{0.0,0.0}};
 
-    string filepathRoot = "output.txt";
-
     int xOffset = 100;//for rendering points
     int yOffset = -100;
 
     int correct = 0;
     int incorrect = 0;
 
-    double spread = 10.0;//a multiplication factor for rendering points of the two classes
+    double spread = 50.0;//a multiplication factor for rendering points of the two classes
 
 
     double minimumBeta = 0.0;
@@ -100,60 +91,40 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    if(argc > 1)
-    {
-        //use the first parameter as a seed for replicating results
-        seed = atoi(argv[1]);
-    }
-
     //mean for class A
-    if(argc > 3)
+    if(argc > 2)
     {
         //parameters 2 through 4 are for mean matrices
-        meanA[0][0] = atof(argv[2]);
-        meanA[1][0] = atof(argv[3]);
+        meanA[0][0] = atof(argv[1]);
+        meanA[1][0] = atof(argv[2]);
     }
 
     //mean for class B
-    if(argc > 5)
+    if(argc > 4)
     {
         //parameters 2 through 4 are for mean matrices
-        meanB[0][0] = atof(argv[4]);
-        meanB[1][0] = atof(argv[5]);
+        meanB[0][0] = atof(argv[3]);
+        meanB[1][0] = atof(argv[4]);
     }
 
     //class A covariance
-    if(argc > 9)
+    if(argc > 8)
     {
         //parameters 6 through 14 are for covariance matrices
-        covarianceA[0][0] = atof(argv[6]);
-        covarianceA[0][1] = atof(argv[7]);
-        covarianceA[1][0] = atof(argv[8]);
-        covarianceA[1][1] = atof(argv[9]);
+        covarianceA[0][0] = atof(argv[5]);
+        covarianceA[0][1] = atof(argv[6]);
+        covarianceA[1][0] = atof(argv[7]);
+        covarianceA[1][1] = atof(argv[8]);
     }
 
     //class B covariance
-    if(argc > 13)
+    if(argc > 12)
     {
         //parameters 6 through 14 are for covariance matrices
-        covarianceB[0][0] = atof(argv[10]);
-        covarianceB[0][1] = atof(argv[11]);
-        covarianceB[1][0] = atof(argv[12]);
-        covarianceB[1][1] = atof(argv[13]);
-    }
-
-    //prior probability for class A & class B
-    if(argc > 15)
-    {
-        probabilityA = atof(argv[14]);
-        probabilityB = atof(argv[15]);
-    }
-
-    //give the option to take in a file name for saving to
-    if(argc > 16)
-    {
-        string newPath(argv[16]);
-        filepathRoot = newPath;
+        covarianceB[0][0] = atof(argv[9]);
+        covarianceB[0][1] = atof(argv[10]);
+        covarianceB[1][0] = atof(argv[11]);
+        covarianceB[1][1] = atof(argv[12]);
     }
 
     //calculate standard deviation
