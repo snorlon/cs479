@@ -5,6 +5,7 @@
 #include <vector>
 #include <errno.h>
 #include <dirent.h>
+#include "jacobi/jacobi.c"
 
 #define pi 3.14159265359
 
@@ -96,6 +97,52 @@ int main(int argc, char** argv)
         cout << files[i] << endl;
         
         databaseRaw.push_back(tempImg);
+    }
+
+    //test finding eigenvalues of the first image
+    Mat testImage = databaseRaw.back();    
+    width = (testImage.cols*testImage.rows)+1;
+    height = databaseRaw.size()+1;
+    int size = max(width, height)+1;
+    double* eigenValues = new double[size];
+    double** eigenVectors = new double*[size];
+
+    double** values = new double*[size];
+
+    for(int i=0; i<size; i++)
+    {
+        values[i] = new double[size];
+        eigenVectors[i] = new double[size];
+
+        eigenValues[i] = 0;
+
+        for(int j=0; j<size; j++)
+        {
+            values[i][j] = 0;
+            eigenVectors[i][j] = 0;
+        }
+    }
+
+    //store all of the images into the value array
+    for(int index=0; index<databaseRaw.size(); index++)
+    {
+        Mat currMat = databaseRaw.at(index);
+        for(int i=0; i<currMat.rows; i++)
+        {
+            for(int j=0; j<currMat.cols; j++)
+            {
+                values[index+1][(i*currMat.cols)+j+1] = currMat.at<uchar>(i,j);
+            }
+        }
+    }
+
+    int a = jacobi(values,size-1, eigenValues,eigenVectors);
+cout<<a<<"|"<<endl;
+
+    //print out eigenvectors?
+    for(int i=1; i<size; i++)
+    {
+        cout<<eigenValues[i]<<endl;
     }
 
     namedWindow("Display Image", CV_WINDOW_AUTOSIZE );
