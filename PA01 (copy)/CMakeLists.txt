@@ -1,8 +1,0 @@
-cmake_minimum_required(VERSION 2.8)
-project( Bayesian )
-find_package( OpenCV REQUIRED )
-include_directories ("${PROJECT_SOURCE_DIR}/src")
-add_subdirectory (src) 
-add_executable( Bayesian main.cpp )
-target_link_libraries( Bayesian ${OpenCV_LIBS} )
-target_link_libraries (Bayesian src)

@@ -107,7 +107,11 @@ int main(int argc, char** argv)
     double* eigenValues = new double[size];
     double** eigenVectors = new double*[size];
 
+    double* averageFace = new double[width]; 
+    double** covarianceMatrix = new double*[databaseRaw.size()+1]; 
+
     double** values = new double*[size];
+    Mat averageFaceMat = databaseRaw.back().clone();
 
     for(int i=0; i<size; i++)
     {
@@ -115,6 +119,7 @@ int main(int argc, char** argv)
         eigenVectors[i] = new double[size];
 
         eigenValues[i] = 0;
+        averageFace[i] = 0;
 
         for(int j=0; j<size; j++)
         {
@@ -122,6 +127,17 @@ int main(int argc, char** argv)
             eigenVectors[i][j] = 0;
         }
     }
+
+    for(int i=0; i<databaseRaw.size()+1; i++)
+    {
+        covarianceMatrix[i] = new double[databaseRaw.size()+1];
+
+        for(int j=0; j<databaseRaw.size()+1; j++)
+        {
+            covarianceMatrix[i][j] = 0;
+        }
+    }
+
 
     //store all of the images into the value array
     for(int index=0; index<databaseRaw.size(); index++)
@@ -136,13 +152,86 @@ int main(int argc, char** argv)
         }
     }
 
-    int a = jacobi(values,size-1, eigenValues,eigenVectors);
-cout<<a<<"|"<<endl;
+
+    //compute the mean of the faces
+    for(int index=0; index<databaseRaw.size(); index++)
+    {
+        for(int i=0; i<width; i++)
+        {
+            averageFace[i+1] += values[index+1][i];
+        }
+    }
+
+    for(int i=0; i<width; i++)
+    {
+        averageFace[i] /= databaseRaw.size();
+    }
+
+    //turn average face into an image
+    for(int i=0; i<averageFaceMat.rows; i++)
+    {
+        for(int j=0; j<averageFaceMat.cols; j++)
+        {
+            averageFaceMat.at<uchar>(i,j) = averageFace[(i*averageFaceMat.cols)+j+1];
+        }
+    }
+
+    //compute the covariance
+    //assume that the current face data is A^T as it is already horizontal
+    for(int i=0; i<databaseRaw.size(); i++)
+    {
+cout<<i<<endl;
+        for(int j=i; j<databaseRaw.size(); j++)
+        {
+            //calculate product of the image differences
+            double sum = 0;
+
+            for(int x=0; x<width; x++)
+            {
+                for(int y=0; y<width; y++)
+                {
+                    sum+= (values[i][x] - averageFace[x])*(values[j][y] - averageFace[y]);
+                }
+            }
+
+            covarianceMatrix[i+1][j+1] = sum;
+            covarianceMatrix[j+1][i+1] = sum;
+        }
+    }
+    
+    for(int i=0; i<databaseRaw.size(); i++)
+    {
+        for(int j=0; j<databaseRaw.size(); j++)
+        {
+            covarianceMatrix[i+1][j+1] /= databaseRaw.size();
+        }
+    }
+
+    cout<<"Calculated covariance matrix."<<endl;
+
+    cout<<"Saving covariance matrix to covmatrix.txt"<<endl;
+
+    ofstream output("covmatrix.txt");
+
+    for(int i=0; i<databaseRaw.size(); i++)
+    {
+        for(int j=0; j<databaseRaw.size(); j++)
+        {
+            output<<covarianceMatrix[i+1][j+1]<<" ";
+        }
+        output<<endl;
+    }
+
+    output.close();
+    
+
+    //int a = jacobi(values,size-1, eigenValues,eigenVectors);
+//cout<<a<<"|"<<endl;
 
     //print out eigenvectors?
     for(int i=1; i<size; i++)
     {
-        cout<<eigenValues[i]<<endl;
+        //cout<<eigenValues[i]<<endl;
     }
 
     namedWindow("Display Image", CV_WINDOW_AUTOSIZE );
@@ -151,7 +240,7 @@ cout<<a<<"|"<<endl;
 
     namedWindow("Display Image2", CV_WINDOW_AUTOSIZE );
     moveWindow("Display Image2", 120, 20);
-    imshow("Display Image2", databaseRaw.back());
+    imshow("Display Image2", averageFaceMat);
 
     waitKey(0);
 
