@@ -1,0 +1,6 @@
+Threshold	Correct	Rejected	False Positive	False Negative
+1000	0	1196	0	9
+2000	0	1196	0	9
+4000	106	1090	101	4
+8000	785	411	776	0
+16000	1191	5	1182	0

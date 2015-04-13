@@ -104,17 +104,10 @@ int main(int argc, char** argv)
 
     string filepathRoot = "output.txt";
 
-    vector<Mat> databaseRaw = vector<Mat>();
+    vector<Mat> databaseCombined = vector<Mat>();
     vector<Mat> eigenfaces = vector<Mat>();
 
-    int imgIndex = 0;
-
-    if(argc > 1)
-    {
-        //use the first parameter as a seed for replicating results
-        //seed = atoi(argv[1]);
-        imgIndex = atoi(argv[1]);
-    }
+    const int maxN = 50;
 
     string dir = string("./Faces/fa_H");
     string dir2 = string("./Faces/fb_H");
@@ -132,20 +125,20 @@ int main(int argc, char** argv)
     std::sort(files2.begin(), files2.end());
     std::sort(files3.begin(), files3.end());
 
-    for (unsigned int i = 0;i < files.size();i++) {
+    for (unsigned int i = 0;i < files2.size();i++) {
         //add the image to our vector of Mats
 
-        Mat tempImg = imread( dir + "/" + files[i], 1 );
+        Mat tempImg = imread( dir2 + "/" + files2[i], 1 );
         if(!tempImg.data)
         {
-            cout << (dir + "/" + files[i]) << "FAILED" << endl;
+            cout << (dir2 + "/" + files2[i]) << "FAILED" << endl;
             continue;//can't add a failed image
         }
         cv::cvtColor(tempImg, tempImg, cv::COLOR_BGR2GRAY);
 
         //cout << files[i] << endl;
         
-        databaseRaw.push_back(tempImg.clone());
+        databaseCombined.push_back(tempImg.clone());
         tempImg.release();
     }
 
@@ -167,8 +160,8 @@ int main(int argc, char** argv)
     }
 
     //test finding eigenvalues of the first image
-    Mat testImage = databaseRaw.back();
-    int height = databaseRaw.size();
+    Mat testImage = databaseCombined.back();
+    int height = databaseCombined.size();
 
     Mat averageFaceMat = imread( "avg_eigenface.png", 1 );
     if(!averageFaceMat.data)
@@ -191,163 +184,147 @@ int main(int argc, char** argv)
     int maxFaces = eigenfaces.size();//new M
 cout<<"TEST"<<endl;
 
-    static double database[1204][1204];
+    static double database[1119][1204];
 
     //load the database
     ifstream input("data/database.txt");
     cout<<"started loading database."<<endl;
 
-    for(int i=0; i<1204; i++)
+    for(int i=0; i<1119; i++)
+    {
+        double dummy = 0;
         for(int j=0; j<1204; j++)
             input>>database[i][j];
+    }
 
     input.close();
 
     cout<<"database loaded."<<endl;
 
-    //create our database
-    for(int j=0; j<databaseRaw.size(); j++)
+    ofstream output("data/roc.txt");
+
+    output<<"Threshold\tCorrect\tRejected\tFalse Positive\tFalse Negative"<<endl;
+
+    for(int y=1000; y<20000; y*=2)
     {
+        int falsePositive = 0;
+        int falseNegative = 0;
+        int errorCount = 0;
+        int correctCount = 0;
 
-        //calculate MxN^2 multiplied with N^2x1(the test image)
-        double eigenvector_coefficients[maxFaces];
-
-        for(int i=0; i< maxFaces; i++)
-            eigenvector_coefficients[i] = 0;
-
-        //convert the test image
-        Mat tempFaceMat;
-        databaseRaw.at(j).convertTo(tempFaceMat, CV_32FC1);
-        Mat avgFaceMat;
-        averageFaceMat.convertTo(avgFaceMat, CV_32FC1);
-
-        //for each i in outputMatrix, it should be the multiplied product of every single image by the test image
-        for(int i=0; i<maxFaces; i++)
+        //iterate across our test images
+        for(int j=0; j<databaseCombined.size(); j++)
         {
-            for(int j=0; j<testImage.rows; j++)
-                for(int k=0; k<testImage.cols; k++)
+
+            //calculate MxN^2 multiplied with N^2x1(the test image)
+            double eigenvector_coefficients[maxFaces];
+
+            for(int i=0; i< maxFaces; i++)
+                eigenvector_coefficients[i] = 0;
+
+            //convert the test image
+            Mat tempFaceMat;
+            databaseCombined.at(j).convertTo(tempFaceMat, CV_32FC1);
+            Mat avgFaceMat;
+            averageFaceMat.convertTo(avgFaceMat, CV_32FC1);
+
+            //for each i in outputMatrix, it should be the multiplied product of every single image by the test image
+            for(int i=0; i<maxFaces; i++)
+            {
+                for(int m=0; m<testImage.rows; m++)
+                    for(int k=0; k<testImage.cols; k++)
+                    {
+                        eigenvector_coefficients[i] += (eigenfaces.at(i).at<uchar>(m,k) - 128) * (tempFaceMat.at<float>(m,k) - avgFaceMat.at<float>(m,k));
+                    }
+            }
+
+
+            int bestWindow[maxN];
+            double bestDist[maxN];
+
+            for(int i=0; i<maxN; i++)
+            {
+                bestWindow[i] = -1;
+                bestDist[i] = 99999999999;
+            }
+
+            for(int i=0; i<1119; i++)//check the database for matching
+            {
+                //calculate distance
+                double distance = 0;
+
+                for(int k=0; k< maxFaces; k++)
+                    distance += abs(floor(eigenvector_coefficients[k] - database[i][k]));
+
+                distance = sqrt(distance);
+
+                //check if this is a better distance for our best-match from the database
+                for(int m=0; m<maxN; m++)
                 {
-                    eigenvector_coefficients[i] += (eigenfaces.at(i).at<uchar>(j,k) - 128) * (tempFaceMat.at<float>(j,k) - avgFaceMat.at<float>(j,k));
+                    if(distance < bestDist[m])
+                    {
+                        //shift down all of the ones after us
+                        for(int p=maxN-2; p>=m && p>=0; p--)
+                        {
+                            bestWindow[p+1] = bestWindow[p];
+                            bestDist[p+1] = bestDist[p];
+                        }
+
+                        bestWindow[m] = i+1;
+                        bestDist[m] = distance;
+                        break;//can escape if we found a better one
+                    }
                 }
+
+                //cout<<j<<" has distance of "<<distance<<" to "<<i<<endl;
+            }
+
+            //check by id of the image
+            string id1 = "";
+            string id2 = "";
+
+            id1 = files.at(bestWindow[0]-1).substr(0,5);
+            
+            id2 = files2.at(j).substr(0,5);
+
+            if(id1.compare(id2) == 0)
+            {
+                if(bestDist[0] >= y)//y is threshold
+                {
+                    falseNegative++;
+                    errorCount++;
+                }
+                else
+                    correctCount++;
+            }
+            else
+            {
+                if(bestDist[0] < y)//y is threshold
+                {
+                    falsePositive++;
+                    correctCount++;
+                }
+                else
+                    errorCount++;
+            }
+
+            tempFaceMat.release();
+            avgFaceMat.release();
         }
 
-        tempFaceMat.release();
-        avgFaceMat.release();
+        cout<<y<<"Threshold"<<endl;
+        cout<<correctCount<<" correct. "<<(correctCount/11.96)<<"%"<<endl;
+        cout<<errorCount<<" errors. "<<(errorCount/11.96)<<"%"<<endl;
+        cout<<falsePositive<<" false positives. "<<(falsePositive/11.96)<<"%"<<endl;
+        cout<<falseNegative<<" false negatives. "<<(falseNegative/11.96)<<"%"<<endl<<endl;
+
+        output<<y<<"\t"<<correctCount<<"\t"<<errorCount<<"\t"<<falsePositive<<"\t"<<falseNegative<<endl;
+
     }
+
+    output.close();
 
     cout<<"Done"<<endl;
-
-    //print out the weights to our "database"
-
-    
-    //normalize the eigen mults
-    //double largestEigenSum = 0;
-    /*for(int i=0; i<maxFaces; i++)
-        largestEigenSum += eigenvector_coefficients[i];
-    for(int i=0; i<maxFaces; i++)
-    {
-        eigenvector_coefficients[i] /= largestEigenSum;
-        //cout<<eigenvector_coefficients[i]<<endl;
-    }*/
-
-
-    /*Mat newImage = tempFaceMat.clone();
-    Mat newImageb = tempFaceMat.clone();
-    double* nvalues[testImage.rows];
-    for(int i=0; i<testImage.rows; i++)
-        nvalues[i] = new double[testImage.cols]();
-
-
-    for(int i=0; i<testImage.rows; i++)
-        for(int j=0; j<testImage.cols; j++)
-            nvalues[i][j] = 0;
-
-    //multiply out the eigenfaces
-    for(int k=0; k<maxFaces; k++)
-    {
-        for(int i=0; i<testImage.rows; i++)
-            for(int j=0; j<testImage.cols; j++)
-                nvalues[i][j]+=(eigenvector_coefficients[k])*((eigenfaces.at(k).at<uchar>(i,j)));
-    }
-
-    //normalize the eigen mults
-    largestEigenSum = 0;
-
-    double smallest = 0;
-    double biggest = 0;
-
-
-    for(int i=0; i<testImage.rows; i++)
-        for(int j=0; j<testImage.cols; j++)
-        {
-            if(nvalues[i][j] < smallest)
-                smallest = nvalues[i][j];
-        }
-
-    for(int i=0; i<testImage.rows; i++)
-        for(int j=0; j<testImage.cols; j++)
-        {
-            nvalues[i][j] +=  abs(smallest);
-        }
-
-    for(int i=0; i<testImage.rows; i++)
-        for(int j=0; j<testImage.cols; j++)
-            if(largestEigenSum < nvalues[i][j])
-                largestEigenSum = nvalues[i][j];
-
-    smallest = 0;
-    biggest = 0;
-
-    for(int i=0; i<testImage.rows; i++)
-        for(int j=0; j<testImage.cols; j++)
-        {
-
-            nvalues[i][j] *= 255.0/largestEigenSum;
-
-            if(nvalues[i][j] > biggest)
-                biggest = nvalues[i][j];
-            if(nvalues[i][j] < smallest)
-                smallest = nvalues[i][j];
-        }
-    cout<<smallest<<endl;
-    cout<<biggest<<endl;
-
-
-
-    //copy to the image B CHECKED
-    for(int i=0; i<testImage.rows; i++)
-        for(int j=0; j<testImage.cols; j++)
-            newImageb.at<float>(i,j) = nvalues[i][j];
-    newImageb = norm_0_255(newImageb);
-
-
-    //add mean face
-    for(int i=0; i<testImage.rows; i++)
-        for(int j=0; j<testImage.cols; j++)
-            nvalues[i][j] = (avgFaceMat.at<float>(i,j)) + (nvalues[i][j]);
-
-
-    //copy to the image A CHECKED
-    for(int i=0; i<testImage.rows; i++)
-        for(int j=0; j<testImage.cols; j++)
-            newImage.at<float>(i,j) = nvalues[i][j];
-    newImage = norm_0_255(newImage);
-
-    //GaussianBlur(newImage, newImage, Size(3, 3), 1.2);
-
-
-    double error = 0;
-
-    //calculate our accuracy!
-    for(int i=0; i<testImage.rows; i++)
-        for(int j=0; j<testImage.cols; j++)
-        {
-            error+= pow(newImage.at<uchar>(i,j) - databaseRaw.at(imgIndex).at<uchar>(i,j),2);
-        }
-
-    error = sqrt(error);
-
-    cout<<error<<endl;*/
 
     /*namedWindow("eigenvectord", CV_WINDOW_AUTOSIZE );
     moveWindow("eigenvectord", 360, 60);
@@ -370,7 +347,7 @@ cout<<"TEST"<<endl;
     cout<<"SHUTTING DOWN PROGRAM"<<endl;
 
     //cleanup
-    databaseRaw.clear();
+    databaseCombined.clear();
     eigenfaces.clear();
     files.clear();
     files2.clear();

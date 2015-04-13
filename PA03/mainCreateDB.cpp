@@ -197,7 +197,7 @@ cout<<maxFaces<<endl;
         ofstream output("data/database.txt");
 
         //create our database
-        for(int j=0; j<databaseRaw.size(); j++)
+        for(int m=0; m<databaseRaw.size(); m++)
         {
 
             //calculate MxN^2 multiplied with N^2x1(the test image)
@@ -208,7 +208,7 @@ cout<<maxFaces<<endl;
 
             //convert the test image
             Mat tempFaceMat;
-            databaseRaw.at(j).convertTo(tempFaceMat, CV_32FC1);
+            databaseRaw.at(m).convertTo(tempFaceMat, CV_32FC1);
             Mat avgFaceMat;
             averageFaceMat.convertTo(avgFaceMat, CV_32FC1);
 
