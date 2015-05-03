@@ -84,6 +84,13 @@ int main(int argc, char * argv[])
     vector<vector<double>> fold3Training;
     vector<vector<double>> fold3Testing;//testing AND validation for the fold
 
+    vector<int> fold1TrainingClass = vector<int>();
+    vector<int> fold1TestingClass = vector<int>();
+    vector<int> fold2TrainingClass = vector<int>();
+    vector<int> fold2TestingClass = vector<int>();
+    vector<int> fold3TrainingClass = vector<int>();
+    vector<int> fold3TestingClass = vector<int>();
+
     vector<vector<double>> tempVector;
 
     //load in all of the data
@@ -102,20 +109,168 @@ int main(int argc, char * argv[])
     tempVector = loadPCA("GenderData/genderdata/48_60/valPCA_03.txt");
     fold3Testing.insert(fold3Testing.end(), tempVector.begin(), tempVector.end());
 
-
     //load in the classes for each sample, maintain exact same loading order!
 
-//
+    ifstream input;
+    int tempVal;
+    input.open("GenderData/genderdata/48_60/TtrPCA_01.txt");
+    input>>tempVal;
+    while(input.good())
+    {
+        fold1TrainingClass.push_back(tempVal);
+
+        input>>tempVal;
+    }
+    input.close();
+    input.clear();
+    input.open("GenderData/genderdata/48_60/TtrPCA_02.txt");
+    input>>tempVal;
+    while(input.good())
+    {
+        fold2TrainingClass.push_back(tempVal);
+
+        input>>tempVal;
+    }
+    input.close();
+    input.clear();
+    input.open("GenderData/genderdata/48_60/TtrPCA_03.txt");
+    input>>tempVal;
+    while(input.good())
+    {
+        fold3TrainingClass.push_back(tempVal);
+
+        input>>tempVal;
+    }
+    input.close();
+    input.clear();
+    input.open("GenderData/genderdata/48_60/TtsPCA_01.txt");
+    input>>tempVal;
+    while(input.good())
+    {
+        fold1TestingClass.push_back(tempVal);
+
+        input>>tempVal;
+    }
+    input.close();
+    input.clear();
+    input.open("GenderData/genderdata/48_60/TvalPCA_01.txt");
+    input>>tempVal;
+    while(input.good())
+    {
+        fold1TestingClass.push_back(tempVal);
+
+        input>>tempVal;
+    }
+    input.close();
+    input.clear();
+    input.open("GenderData/genderdata/48_60/TtsPCA_02.txt");
+    input>>tempVal;
+    while(input.good())
+    {
+        fold2TestingClass.push_back(tempVal);
+
+        input>>tempVal;
+    }
+    input.close();
+    input.clear();
+    input.open("GenderData/genderdata/48_60/TvalPCA_02.txt");
+    input>>tempVal;
+    while(input.good())
+    {
+        fold2TestingClass.push_back(tempVal);
+
+        input>>tempVal;
+    }
+    input.close();
+    input.clear();
+    input.open("GenderData/genderdata/48_60/TtsPCA_03.txt");
+    input>>tempVal;
+    while(input.good())
+    {
+        fold3TestingClass.push_back(tempVal);
+
+        input>>tempVal;
+    }
+    input.close();
+    input.clear();
+    input.open("GenderData/genderdata/48_60/TvalPCA_03.txt");
+    input>>tempVal;
+    while(input.good())
+    {
+        fold3TestingClass.push_back(tempVal);
+
+        input>>tempVal;
+    }
+    input.close();
+    input.clear();
+
+cout<<fold3TestingClass.size()<<endl;
+
+    //set the problem parameters
+    //we'll only do fold 1 for now
     //problem
     //y is gender ID, 1 male, 2 female
     //30 coeffs for eigenfaces per training image
         //x[imgcount][30] basically
 
 
-    prob.l = 4;
+    prob.l = 134;
+
+    svm_node** x = Malloc(svm_node*,prob.l);
+
+    for (int row = 0; row <prob.l; row++){
+        svm_node* x_space = Malloc(svm_node,31);
+        for (int col = 0;col < 30; col++){
+            x_space[col].index = col;
+            x_space[col].value = fold1Training[row][col];
+        }
+        x_space[30].index = -1;      //Each row of properties should be terminated with a -1 according to the readme
+        x[row] = x_space;
+    }
+
+    prob.x = x;
+
+    prob.y = Malloc(double,prob.l);
+    for(int i=0; i<fold1TrainingClass.size(); i++)
+    {
+        prob.y[i] = fold1TrainingClass[i];
+    }
+
+    //I WANNA BE THE VERY BEST. LIKE NO ONE EVER WAS.
+    svm_model *model = svm_train(&prob,&parameters);
+
+    int testSize = fold1TestingClass.size();
+    int correctCount = testSize;
+
+    //Test model----------------------------------------------------------------------
+    for(int sample = 0; sample < testSize; sample++)
+    {
+        svm_node* testnode = Malloc(svm_node,31);
+        for(int i=0; i<30; i++)
+        {
+            testnode[i].index = i;
+            testnode[i].value = fold1Testing[sample][i];
+        }
+        testnode[30].index = -1;
+
+        //This works correctly:
+        double retval = svm_predict(model,testnode);
+        int realVal = fold1TestingClass[sample];
+        string correctStr = "correct";
+        if(retval != realVal)
+        {
+            correctStr = "WRONG";
+            correctCount--;
+        }
+
+        printf("%s    sample: %d    retval: %f    real value: %d\n", correctStr.c_str(), sample, retval ,realVal);
+    }
+
+    cout<<correctCount<<"/"<<testSize<<" correct. "<<((double) 100*correctCount/testSize)<<"%"<<endl;
+
 
     //x values matrix of xor values
-    double matrix[prob.l][2];
+    /*double matrix[prob.l][2];
     matrix[0][0] = 1;
     matrix[0][1] = 1;
 
@@ -165,7 +320,7 @@ int main(int argc, char * argv[])
 
     //This works correctly:
     double retval = svm_predict(model,testnode);
-    printf("retval: %f\n",retval);
+    printf("retval: %f\n",retval);*/
 
 
     svm_destroy_param(&parameters);
