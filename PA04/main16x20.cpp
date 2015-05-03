@@ -314,60 +314,6 @@ cout<<"HERE"<<endl;
     cout<<correctRate1<<"%"<<endl;
 
 
-    //x values matrix of xor values
-    /*double matrix[prob.l][2];
-    matrix[0][0] = 1;
-    matrix[0][1] = 1;
-
-    matrix[1][0] = 1;
-    matrix[1][1] = 0;
-
-    matrix[2][0] = 0;
-    matrix[2][1] = 1;
-
-    matrix[3][0] = 0;
-    matrix[3][1] = 0;
-
-
-    svm_node** x = Malloc(svm_node*,prob.l);
-
-    //Trying to assign from matrix to svm_node training examples
-    for (int row = 0;row <prob.l; row++){
-        svm_node* x_space = Malloc(svm_node,3);
-        for (int col = 0;col < 2;col++){
-            x_space[col].index = col;
-            x_space[col].value = matrix[row][col];
-        }
-        x_space[2].index = -1;      //Each row of properties should be terminated with a -1 according to the readme
-        x[row] = x_space;
-    }
-
-    prob.x = x;
-
-    //yvalues
-    prob.y = Malloc(double,prob.l);
-    prob.y[0] = -1;
-    prob.y[1] = 1;
-    prob.y[2] = 1;
-    prob.y[3] = -1;
-
-    //Train model---------------------------------------------------------------------
-    svm_model *model = svm_train(&prob,&parameters);
-
-
-    //Test model----------------------------------------------------------------------
-    svm_node* testnode = Malloc(svm_node,3);
-    testnode[0].index = 0;
-    testnode[0].value = 1;
-    testnode[1].index = 1;
-    testnode[1].value = 0;
-    testnode[2].index = -1;
-
-    //This works correctly:
-    double retval = svm_predict(model,testnode);
-    printf("retval: %f\n",retval);*/
-
-
     svm_destroy_param(&parameters);
     free(prob1.y);
     free(prob1.x);
